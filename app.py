@@ -5,10 +5,8 @@ import re
 
 st.set_page_config(page_title="TDT Argentina Live", layout="wide", page_icon="📺")
 
-# Cargar canales locales o la lista de TDTChannels
 @st.cache_data(ttl=300)
 def cargar_datos():
-    # Canales principales de TDTChannels Argentina (YouTube + M3U8)
     canales_base = [
         {"nombre": "Todo Noticias (TN)", "categoria": "Noticias", "url_stream": "https://www.youtube.com/watch?v=gS_J3k5uRUk", "tipo": "youtube"},
         {"nombre": "C5N", "categoria": "Noticias", "url_stream": "https://www.youtube.com/watch?v=d_kS3xXkM9s", "tipo": "youtube"},
@@ -20,16 +18,17 @@ def cargar_datos():
         {"nombre": "El Nueve", "categoria": "General", "url_stream": "https://www.youtube.com/watch?v=tR3k8XmK8s0", "tipo": "youtube"}
     ]
     
-    # Intentar combinar con tv.m3u local si existe
+    # Integrar señales del archivo tv.m3u local si está disponible
     try:
         with open("tv.m3u", "r", encoding="utf-8", errors="ignore") as f:
+            nombre = "Canal M3U"
             for linea in f:
                 linea = linea.strip()
                 if linea.startswith('#EXTINF:'):
                     partes = linea.split(',')
                     nombre = partes[-1].strip() if len(partes) > 1 else "Canal M3U"
                 elif linea.startswith('http://') or linea.startswith('https://'):
-                    tipo = "youtube" if "youtube.com" in linea or "youtu.be" in linea else "hls"
+                    tipo = "youtube" if ("youtube.com" in linea or "youtu.be" in linea) else "hls"
                     canales_base.append({"nombre": nombre, "categoria": "General", "url_stream": linea, "tipo": tipo})
     except Exception:
         pass
@@ -59,23 +58,26 @@ if not df.empty:
             url_stream, tipo = opciones[canal_seleccionado]
             st.subheader(f"🔴 En vivo: {canal_seleccionado}")
             
-            # Si es transmisión de YouTube
+            # Canales vía YouTube
             if "youtube.com" in url_stream or "youtu.be" in url_stream:
-                # Extraer el ID del video de YouTube
                 video_id = ""
                 if "v=" in url_stream:
                     video_id = url_stream.split("v=")[1].split("&")[0]
                 elif "youtu.be/" in url_stream:
                     video_id = url_stream.split("youtu.be/")[1].split("?")[0]
                 
+                # Intentar reproductor embebido
                 yt_html = f"""
-                <iframe width="100%" height="420" src="https://www.youtube.com/embed/{video_id}?autoplay=1" 
+                <iframe width="100%" height="400" src="https://www.youtube.com/embed/{video_id}?autoplay=1" 
                 frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                 allowfullscreen style="border-radius: 12px;"></iframe>
                 """
-                components.html(yt_html, height=430)
+                components.html(yt_html, height=410)
+                
+                # Botón de contingencia para transmisiones con restricción EMB
+                st.link_button("🌐 Abrir transmisión original en YouTube", f"https://www.youtube.com/watch?v={video_id}")
             
-            # Si es señal HLS (.m3u8)
+            # Canales con señal HLS (.m3u8) directa
             else:
                 player_html = f"""
                 <!DOCTYPE html>
@@ -104,5 +106,4 @@ if not df.empty:
                 </html>
                 """
                 components.html(player_html, height=420)
-                
-            st.caption(f"**URL Fuente:** `{url_stream}`")
+                st.caption(f"**URL de la señal:** `{url_stream}`")
