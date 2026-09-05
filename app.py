@@ -1,45 +1,43 @@
 import streamlit as st
 import pandas as pd
-import gspread
 import streamlit.components.v1 as components
-import json
 
 st.set_page_config(page_title="TDT Argentina Live", layout="wide", page_icon="📺")
 
-# Carga de datos
+# Carga de datos local o remota desde la lista M3U
 @st.cache_data(ttl=300)
 def cargar_datos():
-    # Intenta leer credenciales desde Streamlit Secrets (para el deploy web) o archivo local
-    if "gcp_service_account" in st.secrets:
-        client = gspread.service_account_from_dict(st.secrets["gcp_service_account"])
-    else:
-        client = gspread.oauth(
-            credentials_filename="credentials.json",
-            authorized_user_filename="authorized_user.json"
-        )
-    sheet = client.open("TDT_Argentina").sheet1
-    return pd.DataFrame(sheet.get_all_records())
+    try:
+        return pd.read_csv("TDT_Argentina.csv")
+    except Exception:
+        import requests
+        import re
+        url_m3u = "https://raw.githubusercontent.com/iptv-org/iptv/master/streams/ar.m3u"
+        resp = requests.get(url_m3u)
+        canales = []
+        canal = {}
+        for linea in resp.text.strip().split('\n'):
+            linea = linea.strip()
+            if linea.startswith('#EXTINF:'):
+                match_id = re.search(r'tvg-id="(.*?)"', linea)
+                tvg_id = match_id.group(1) if match_id else ""
+                partes = linea.split(',')
+                nombre = partes[-1].strip() if len(partes) > 1 else "Sin nombre"
+                canal = {"id": tvg_id, "nombre": nombre, "categoria": "General", "url_stream": "", "user_agent": "", "estado": "Activo"}
+            elif linea.startswith('http://') or linea.startswith('https://'):
+                canal["url_stream"] = linea
+                canales.append(canal)
+                canal = {}
+        return pd.DataFrame(canales)
 
-try:
-    df = cargar_datos()
-except Exception as e:
-    st.error(f"Error al cargar datos de Google Sheets: {e}")
-    st.stop()
-
-# Interfaz personalizada CSS/HTML
-st.markdown("""
-<style>
-    .main { background-color: #0e1117; }
-    .stTextInput input { border-radius: 20px; padding: 10px 15px; }
-</style>
-""", unsafe_allow_html=True)
+df = cargar_datos()
 
 st.title("📺 Argentina TV Digital")
 
 # Buscador rápido
 busqueda = st.text_input("🔍 Buscar canal...", placeholder="Ej: A24, América, Santa Fe...")
 
-df_filtrado = df[df["estado"] == "Activo"]
+df_filtrado = df[df["estado"] == "Activo"] if "estado" in df.columns else df
 if busqueda:
     df_filtrado = df_filtrado[df_filtrado["nombre"].str.contains(busqueda, case=False, na=False)]
 
@@ -47,8 +45,6 @@ col_reproductor, col_lista = st.columns([2, 1])
 
 with col_lista:
     st.subheader(f"Canales ({len(df_filtrado)})")
-    
-    # Lista desplegable de selección rápida
     opciones = {row['nombre']: row['url_stream'] for _, row in df_filtrado.iterrows()}
     canal_seleccionado = st.radio("Selecciona una señal:", list(opciones.keys()), index=0 if len(opciones) > 0 else None)
 
@@ -57,7 +53,6 @@ with col_reproductor:
         url_stream = opciones[canal_seleccionado]
         st.subheader(f"🔴 En vivo: {canal_seleccionado}")
         
-        # Player HTML5 custom con HLS.js
         player_html = f"""
         <!DOCTYPE html>
         <html>
