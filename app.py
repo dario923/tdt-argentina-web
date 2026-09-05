@@ -28,8 +28,8 @@ def cargar_datos():
         {
             "nombre": "TV Pública (En vivo)", 
             "categoria": "General", 
-            "url_stream": "https://g3.vxral-slo.transport.edge-access.net/b16/ngrp:c7_vivo01_dai_source-20001_all/playlist.m3u8", 
-            "tipo": "hls"
+            "url_stream": "https://vmf.edge-apps.net/embed/live.php?streamname=c7live01-20034&autoplay=true", 
+            "tipo": "iframe_tvp"
         },
         {
             "nombre": "Todo Noticias (TN)", 
@@ -102,8 +102,23 @@ if not df.empty:
             url_stream, tipo = opciones[canal_seleccionado]
             st.subheader(f"🔴 En vivo: {canal_seleccionado}")
             
+            # Reproductor especial para TV Pública
+            if tipo == "iframe_tvp":
+                iframe_html = f"""
+                <iframe width="100%" height="450" 
+                src="{url_stream}" 
+                title="{canal_seleccionado}" 
+                frameborder="0" 
+                referrerpolicy="no-referrer-when-downgrade"
+                allow="autoplay; fullscreen; encrypted-media; picture-in-picture" 
+                allowfullscreen 
+                style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+                </iframe>
+                """
+                components.html(iframe_html, height=460)
+
             # Reproductor iframe directo (América TV, Telefe, TN)
-            if tipo == "iframe_directo":
+            elif tipo == "iframe_directo":
                 iframe_html = f"""
                 <iframe width="100%" height="450" 
                 src="{url_stream}" 
