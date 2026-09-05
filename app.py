@@ -7,8 +7,8 @@ st.set_page_config(page_title="TDT Argentina Live", layout="wide", page_icon="�
 @st.cache_data(ttl=300)
 def cargar_datos():
     canales_base = [
+        {"nombre": "C5N (En vivo)", "categoria": "Noticias", "url_stream": "https://www.youtube.com/watch?v=j6oh4Kqz3UM", "tipo": "youtube"},
         {"nombre": "Todo Noticias (TN)", "categoria": "Noticias", "url_stream": "https://www.youtube.com/watch?v=gS_J3k5uRUk", "tipo": "youtube"},
-        {"nombre": "C5N", "categoria": "Noticias", "url_stream": "https://www.youtube.com/watch?v=d_kS3xXkM9s", "tipo": "youtube"},
         {"nombre": "A24", "categoria": "Noticias", "url_stream": "https://www.youtube.com/watch?v=O1R1L-xKkXo", "tipo": "youtube"},
         {"nombre": "La Nación +", "categoria": "Noticias", "url_stream": "https://www.youtube.com/watch?v=eYkP3N19K9s", "tipo": "youtube"},
         {"nombre": "TV Pública", "categoria": "General", "url_stream": "https://www.youtube.com/watch?v=uJ3k8XmK8s0", "tipo": "youtube"},
@@ -38,7 +38,7 @@ df = cargar_datos()
 st.title("📺 Argentina TV Digital")
 
 if not df.empty:
-    busqueda = st.text_input("🔍 Buscar canal...", placeholder="Ej: TN, C5N, América...")
+    busqueda = st.text_input("🔍 Buscar canal...", placeholder="Ej: C5N, TN, América...")
 
     df_filtrado = df.copy()
     if busqueda:
@@ -56,30 +56,32 @@ if not df.empty:
             url_stream, tipo = opciones[canal_seleccionado]
             st.subheader(f"🔴 En vivo: {canal_seleccionado}")
             
-            # Canales vía YouTube
+            # Repro de YouTube con el formato exacto de iframe con referrerpolicy
             if "youtube.com" in url_stream or "youtu.be" in url_stream:
                 video_id = ""
                 if "v=" in url_stream:
                     video_id = url_stream.split("v=")[1].split("&")[0]
                 elif "youtu.be/" in url_stream:
                     video_id = url_stream.split("youtu.be/")[1].split("?")[0]
+                elif "embed/" in url_stream:
+                    video_id = url_stream.split("embed/")[1].split("?")[0]
+
+                iframe_html = f"""
+                <iframe width="100%" height="450" 
+                src="https://www.youtube.com/embed/{video_id}?autoplay=1&mute=1" 
+                title="{canal_seleccionado}" 
+                frameborder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                referrerpolicy="strict-origin-when-cross-origin" 
+                allowfullscreen 
+                style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+                </iframe>
+                """
+                components.html(iframe_html, height=460)
                 
-                url_embed = f"https://www.youtube-nocookie.com/embed/{video_id}?autoplay=1&mute=1&rel=0&modestbranding=1"
-                
-                st.markdown(
-                    f"""
-                    <iframe width="100%" height="400" src="{url_embed}" 
-                    title="{canal_seleccionado}" frameborder="0" 
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                    allowfullscreen style="border-radius: 12px;"></iframe>
-                    """,
-                    unsafe_allow_html=True
-                )
-                
-                st.info("💡 Si la transmisión indica restricciones de reproducción por derechos del canal, puedes abrir la señal directamente:")
-                st.link_button("🔴 Abrir emisión oficial en vivo", f"https://www.youtube.com/watch?v={video_id}", use_container_width=True)
+                st.link_button("🔴 Abrir directo en YouTube", f"https://www.youtube.com/watch?v={video_id}", use_container_width=True)
             
-            # Canales con señal HLS (.m3u8) directa
+            # Repro HLS (.m3u8)
             else:
                 player_html = f"""
                 <!DOCTYPE html>
@@ -107,5 +109,5 @@ if not df.empty:
                 </body>
                 </html>
                 """
-                components.html(player_html, height=420)
+                components.html(player_html, height=460)
                 st.caption(f"**URL Directa:** `{url_stream}`")
