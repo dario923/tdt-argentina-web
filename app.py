@@ -1,36 +1,14 @@
-import streamlit as st
+import re
 import pandas as pd
+import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="TDT Argentina Live", layout="wide", page_icon="📺")
+st.set_page_config(page_title="TDT Tv Live", layout="wide", page_icon="📺")
 
 @st.cache_data(ttl=300)
 def cargar_datos():
+    # Canales base con sus enlaces funcionales
     canales_base = [
-        {
-            "nombre": "El Nueve (En vivo)", 
-            "categoria": "General", 
-            "url_stream": "https://www.youtube.com/watch?v=tR3k8XmK8s0", 
-            "tipo": "youtube"
-        },
-        {
-            "nombre": "América TV (En vivo)", 
-            "categoria": "General", 
-            "url_stream": "https://vmf.edge-apps.net/embed/live.php?streamname=americahls-100056&autoplay=true", 
-            "tipo": "iframe_directo"
-        },
-        {
-            "nombre": "Telefe (En vivo)", 
-            "categoria": "General", 
-            "url_stream": "https://mdstrm.com/live-stream/6a024684fd4ca6a938f3a118", 
-            "tipo": "iframe_directo"
-        },
-        {
-            "nombre": "TV Pública (En vivo)", 
-            "categoria": "General", 
-            "url_stream": "https://vmf.edge-apps.net/embed/live.php?streamname=c7live01-20034&autoplay=true", 
-            "tipo": "iframe_tvp"
-        },
         {
             "nombre": "Todo Noticias (TN)", 
             "categoria": "Noticias", 
@@ -44,38 +22,45 @@ def cargar_datos():
             "tipo": "youtube"
         },
         {
-            "nombre": "A24", 
-            "categoria": "Noticias", 
-            "url_stream": "https://www.youtube.com/watch?v=O1R1L-xKkXo", 
-            "tipo": "youtube"
-        },
-        {
             "nombre": "La Nación +", 
             "categoria": "Noticias", 
-            "url_stream": "https://www.youtube.com/watch?v=eYkP3N19K9s", 
+            "url_stream": "https://www.youtube.com/embed/FEWZjXJ7M0c?si=bd5d9K4LEQAYdksX", 
             "tipo": "youtube"
         },
         {
             "nombre": "Crónica TV", 
             "categoria": "Noticias", 
-            "url_stream": "https://www.youtube.com/watch?v=rR3k8XmK8s0", 
+            "url_stream": "https://www.youtube.com/watch?v=hw4uHyct4vg", 
             "tipo": "youtube"
         }
     ]
     
-    try:
-        with open("tv.m3u", "r", encoding="utf-8", errors="ignore") as f:
-            nombre = "Canal M3U"
-            for linea in f:
-                linea = linea.strip()
-                if linea.startswith('#EXTINF:'):
-                    partes = linea.split(',')
-                    nombre = partes[-1].strip() if len(partes) > 1 else "Canal M3U"
-                elif linea.startswith('http://') or linea.startswith('https://'):
-                    tipo = "youtube" if ("youtube.com" in linea or "youtu.be" in linea) else "hls"
-                    canales_base.append({"nombre": nombre, "categoria": "General", "url_stream": linea, "tipo": tipo})
-    except Exception:
-        pass
+    # Intenta parsear tv.m3u o ar.m3u si está presente localmente
+    for m3u_filename in ["tv.m3u", "ar.m3u"]:
+        try:
+            with open(m3u_filename, "r", encoding="utf-8", errors="ignore") as f:
+                nombre = "Canal M3U"
+                user_agent = ""
+                for linea in f:
+                    linea = linea.strip()
+                    if linea.startswith('#EXTINF:'):
+                        partes = linea.split(',')
+                        nombre = partes[-1].strip() if len(partes) > 1 else "Canal M3U"
+                    elif linea.startswith('#EXTVLCOPT:http-user-agent='):
+                        user_agent = linea.split('=', 1)[1].strip()
+                    elif linea.startswith('http://') or linea.startswith('https://') or "<iframe" in linea:
+                        tipo = "youtube" if ("youtube.com" in linea or "youtu.be" in linea) else "hls"
+                        canales_base.append({
+                            "nombre": nombre, 
+                            "categoria": "General", 
+                            "url_stream": linea, 
+                            "tipo": tipo,
+                            "user_agent": user_agent
+                        })
+                        user_agent = ""
+            break
+        except Exception:
+            pass
 
     return pd.DataFrame(canales_base)
 
@@ -84,7 +69,7 @@ df = cargar_datos()
 st.title("📺 Argentina TV Digital")
 
 if not df.empty:
-    busqueda = st.text_input("🔍 Buscar canal...", placeholder="Ej: TV Pública, América, Telefe, TN...")
+    busqueda = st.text_input("🔍 Buscar canal...", placeholder="Ej: TV Pública, América, Telefe, TN, Crónica, La Nación...")
 
     df_filtrado = df.copy()
     if busqueda:
@@ -102,8 +87,8 @@ if not df.empty:
             url_stream, tipo = opciones[canal_seleccionado]
             st.subheader(f"🔴 En vivo: {canal_seleccionado}")
             
-            # Reproductor especial para TV Pública
-            if tipo == "iframe_tvp":
+            # Reproductor iframe especial
+            if tipo == "iframe_tvp" or tipo == "iframe_directo":
                 iframe_html = f"""
                 <iframe width="100%" height="450" 
                 src="{url_stream}" 
@@ -117,44 +102,31 @@ if not df.empty:
                 """
                 components.html(iframe_html, height=460)
 
-            # Reproductor iframe directo (América TV, Telefe, TN)
-            elif tipo == "iframe_directo":
-                iframe_html = f"""
-                <iframe width="100%" height="450" 
-                src="{url_stream}" 
-                title="{canal_seleccionado}" 
-                frameborder="0" 
-                referrerpolicy="no-referrer"
-                allow="autoplay; fullscreen; encrypted-media; picture-in-picture" 
-                allowfullscreen 
-                style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
-                </iframe>
-                """
-                components.html(iframe_html, height=460)
-
-            # Reproductor de YouTube
+            # Reproductor de YouTube (extrae el ID incluso si le pegas el código <iframe ...>)
             elif tipo == "youtube" or "youtube.com" in url_stream or "youtu.be" in url_stream:
                 video_id = ""
-                if "v=" in url_stream:
-                    video_id = url_stream.split("v=")[1].split("&")[0]
-                elif "youtu.be/" in url_stream:
-                    video_id = url_stream.split("youtu.be/")[1].split("?")[0]
-                elif "embed/" in url_stream:
-                    video_id = url_stream.split("embed/")[1].split("?")[0]
+                
+                # Expresión regular para capturar el ID de 11 caracteres de YouTube en cualquier formato
+                match = re.search(r'(?:v=|\/embed\/|\/watch\?v=|\/v\/|https:\/\/youtu\.be\/|\/shorts\/)([a-zA-Z0-9_-]{11})', url_stream)
+                if match:
+                    video_id = match.group(1)
 
-                iframe_html = f"""
-                <iframe width="100%" height="450" 
-                src="https://www.youtube.com/embed/{video_id}?autoplay=1&mute=1" 
-                title="{canal_seleccionado}" 
-                frameborder="0" 
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                referrerpolicy="strict-origin-when-cross-origin" 
-                allowfullscreen 
-                style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
-                </iframe>
-                """
-                components.html(iframe_html, height=460)
-                st.link_button("🔴 Abrir directo en YouTube", f"https://www.youtube.com/watch?v={video_id}", use_container_width=True)
+                if video_id:
+                    iframe_html = f"""
+                    <iframe width="100%" height="450" 
+                    src="https://www.youtube.com/embed/{video_id}?autoplay=1&mute=1" 
+                    title="{canal_seleccionado}" 
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                    referrerpolicy="strict-origin-when-cross-origin" 
+                    allowfullscreen 
+                    style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+                    </iframe>
+                    """
+                    components.html(iframe_html, height=460)
+                    st.link_button("🔴 Abrir directo en YouTube", f"https://www.youtube.com/watch?v={video_id}", use_container_width=True)
+                else:
+                    st.error("No se pudo obtener el ID del video de YouTube.")
             
             # Reproductor HLS (.m3u8)
             else:
