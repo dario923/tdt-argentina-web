@@ -66,7 +66,7 @@ def cargar_datos():
 
 df = cargar_datos()
 
-st.title("📺 Argentina TV Digital")
+st.title("📺 TDT TV Digital")
 
 if not df.empty:
     busqueda = st.text_input("🔍 Buscar canal...", placeholder="Ej: TV Pública, América, Telefe, TN, Crónica, La Nación...")
