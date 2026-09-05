@@ -2,30 +2,17 @@ import re
 import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
+import streamlit_analytics2 as streamlit_analytics
 
 st.set_page_config(page_title="TDT Tv Live", layout="wide", page_icon="📺")
 
-# ==========================================
-# CÓDIGO DE GOOGLE ANALYTICS
-# ==========================================
-GA_ID = "G-88B6BJLQGB"
-
-ga_code = f"""
-<!-- Global site tag (gtag.js) - Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){{dataLayer.push(arguments);}}
-  gtag('js', new Date());
-  gtag('config', '{GA_ID}');
-</script>
-"""
-components.html(ga_code, height=0, width=0)
-# ==========================================
+# Activa la medición con tu ID de Google Analytics
+streamlit_analytics.start_tracking(
+    analytics_id="G-88B6BJLQGB"
+)
 
 @st.cache_data(ttl=300)
 def cargar_datos():
-    # Canales base con sus enlaces funcionales
     canales_base = [
         {
             "nombre": "Todo Noticias (TN)", 
@@ -52,8 +39,7 @@ def cargar_datos():
             "tipo": "youtube"
         }
     ]
-    
-    # Intenta parsear tv.m3u o ar.m3u si está presente localmente
+
     for m3u_filename in ["tv.m3u", "ar.m3u"]:
         try:
             with open(m3u_filename, "r", encoding="utf-8", errors="ignore") as f:
@@ -104,8 +90,7 @@ if not df.empty:
         if canal_seleccionado:
             url_stream, tipo = opciones[canal_seleccionado]
             st.subheader(f"🔴 En vivo: {canal_seleccionado}")
-            
-            # Reproductor iframe especial
+
             if tipo == "iframe_tvp" or tipo == "iframe_directo":
                 iframe_html = f"""
                 <iframe width="100%" height="450" 
@@ -120,11 +105,8 @@ if not df.empty:
                 """
                 components.html(iframe_html, height=460)
 
-            # Reproductor de YouTube (extrae el ID incluso si le pegas el código <iframe ...>)
             elif tipo == "youtube" or "youtube.com" in url_stream or "youtu.be" in url_stream:
                 video_id = ""
-                
-                # Expresión regular para capturar el ID de 11 caracteres de YouTube en cualquier formato
                 match = re.search(r'(?:v=|\/embed\/|\/watch\?v=|\/v\/|https:\/\/youtu\.be\/|\/shorts\/)([a-zA-Z0-9_-]{11})', url_stream)
                 if match:
                     video_id = match.group(1)
@@ -145,8 +127,7 @@ if not df.empty:
                     st.link_button("🔴 Abrir directo en YouTube", f"https://www.youtube.com/watch?v={video_id}", use_container_width=True)
                 else:
                     st.error("No se pudo obtener el ID del video de YouTube.")
-            
-            # Reproductor HLS (.m3u8)
+
             else:
                 player_html = f"""
                 <!DOCTYPE html>
@@ -176,3 +157,8 @@ if not df.empty:
                 """
                 components.html(player_html, height=460)
                 st.caption(f"**URL Directa:** `{url_stream}`")
+
+# Finaliza el rastreo al terminar el renderizado
+streamlit_analytics.stop_tracking(
+    analytics_id="G-88B6BJLQGB"
+)
