@@ -56,12 +56,30 @@ if not df.empty:
             url_stream, tipo = opciones[canal_seleccionado]
             st.subheader(f"🔴 En vivo: {canal_seleccionado}")
             
-            # Reproducción limpia nativa para YouTube
+            # Canales vía YouTube
             if "youtube.com" in url_stream or "youtu.be" in url_stream:
-                st.video(url_stream)
-                st.link_button("🌐 Abrir señal en pestaña nueva", url_stream)
+                video_id = ""
+                if "v=" in url_stream:
+                    video_id = url_stream.split("v=")[1].split("&")[0]
+                elif "youtu.be/" in url_stream:
+                    video_id = url_stream.split("youtu.be/")[1].split("?")[0]
+                
+                url_embed = f"https://www.youtube-nocookie.com/embed/{video_id}?autoplay=1&mute=1&rel=0&modestbranding=1"
+                
+                st.markdown(
+                    f"""
+                    <iframe width="100%" height="400" src="{url_embed}" 
+                    title="{canal_seleccionado}" frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowfullscreen style="border-radius: 12px;"></iframe>
+                    """,
+                    unsafe_allow_html=True
+                )
+                
+                st.info("💡 Si la transmisión indica restricciones de reproducción por derechos del canal, puedes abrir la señal directamente:")
+                st.link_button("🔴 Abrir emisión oficial en vivo", f"https://www.youtube.com/watch?v={video_id}", use_container_width=True)
             
-            # Reproducción HLS.js para streams M3U8
+            # Canales con señal HLS (.m3u8) directa
             else:
                 player_html = f"""
                 <!DOCTYPE html>
