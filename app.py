@@ -109,6 +109,7 @@ if not df.empty:
                 src="{url_stream}" 
                 title="{canal_seleccionado}" 
                 frameborder="0" 
+                referrerpolicy="no-referrer"
                 allow="autoplay; fullscreen; encrypted-media; picture-in-picture" 
                 allowfullscreen 
                 style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
