@@ -5,6 +5,24 @@ import streamlit.components.v1 as components
 
 st.set_page_config(page_title="TDT Tv Live", layout="wide", page_icon="📺")
 
+# ==========================================
+# CÓDIGO DE GOOGLE ANALYTICS
+# ==========================================
+GA_ID = "G-88B6BJLQGB"
+
+ga_code = f"""
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){{dataLayer.push(arguments);}}
+  gtag('js', new Date());
+  gtag('config', '{GA_ID}');
+</script>
+"""
+components.html(ga_code, height=0, width=0)
+# ==========================================
+
 @st.cache_data(ttl=300)
 def cargar_datos():
     # Canales base con sus enlaces funcionales
