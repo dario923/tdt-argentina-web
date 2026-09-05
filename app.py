@@ -28,8 +28,8 @@ def cargar_datos():
         {
             "nombre": "TV Pública (En vivo)", 
             "categoria": "General", 
-            "url_stream": "https://vmf.edge-apps.net/embed/live.php?streamname=c7live01-20034&autoplay=true", 
-            "tipo": "iframe_directo"
+            "url_stream": "https://g3.vxral-slo.transport.edge-access.net/b16/ngrp:c7_vivo01_dai_source-20001_all/playlist.m3u8", 
+            "tipo": "hls"
         },
         {
             "nombre": "Todo Noticias (TN)", 
@@ -102,7 +102,7 @@ if not df.empty:
             url_stream, tipo = opciones[canal_seleccionado]
             st.subheader(f"🔴 En vivo: {canal_seleccionado}")
             
-            # Reproductor iframe directo (América TV, Telefe, TV Pública, TN)
+            # Reproductor iframe directo (América TV, Telefe, TN)
             if tipo == "iframe_directo":
                 iframe_html = f"""
                 <iframe width="100%" height="450" 
@@ -117,7 +117,7 @@ if not df.empty:
                 """
                 components.html(iframe_html, height=460)
 
-            # Reproductor de YouTube (El Nueve, C5N, A24, LN+, etc.)
+            # Reproductor de YouTube
             elif tipo == "youtube" or "youtube.com" in url_stream or "youtu.be" in url_stream:
                 video_id = ""
                 if "v=" in url_stream:
