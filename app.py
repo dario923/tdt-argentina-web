@@ -7,14 +7,60 @@ st.set_page_config(page_title="TDT Argentina Live", layout="wide", page_icon="�
 @st.cache_data(ttl=300)
 def cargar_datos():
     canales_base = [
-        {"nombre": "C5N (En vivo)", "categoria": "Noticias", "url_stream": "https://www.youtube.com/watch?v=j6oh4Kqz3UM", "tipo": "youtube"},
-        {"nombre": "Todo Noticias (TN)", "categoria": "Noticias", "url_stream": "https://www.youtube.com/watch?v=gS_J3k5uRUk", "tipo": "youtube"},
-        {"nombre": "A24", "categoria": "Noticias", "url_stream": "https://www.youtube.com/watch?v=O1R1L-xKkXo", "tipo": "youtube"},
-        {"nombre": "La Nación +", "categoria": "Noticias", "url_stream": "https://www.youtube.com/watch?v=eYkP3N19K9s", "tipo": "youtube"},
-        {"nombre": "TV Pública", "categoria": "General", "url_stream": "https://www.youtube.com/watch?v=uJ3k8XmK8s0", "tipo": "youtube"},
-        {"nombre": "América TV", "categoria": "General", "url_stream": "https://www.youtube.com/watch?v=eR3k8XmK8s0", "tipo": "youtube"},
-        {"nombre": "Crónica TV", "categoria": "Noticias", "url_stream": "https://www.youtube.com/watch?v=rR3k8XmK8s0", "tipo": "youtube"},
-        {"nombre": "El Nueve", "categoria": "General", "url_stream": "https://www.youtube.com/watch?v=tR3k8XmK8s0", "tipo": "youtube"}
+        {
+            "nombre": "El Nueve (En vivo)", 
+            "categoria": "General", 
+            "url_stream": "https://www.youtube.com/watch?v=tR3k8XmK8s0", 
+            "tipo": "youtube"
+        },
+        {
+            "nombre": "América TV (En vivo)", 
+            "categoria": "General", 
+            "url_stream": "https://vmf.edge-apps.net/embed/live.php?streamname=americahls-100056&autoplay=true", 
+            "tipo": "iframe_directo"
+        },
+        {
+            "nombre": "Telefe (En vivo)", 
+            "categoria": "General", 
+            "url_stream": "https://mdstrm.com/live-stream/6a024684fd4ca6a938f3a118", 
+            "tipo": "iframe_directo"
+        },
+        {
+            "nombre": "TV Pública (En vivo)", 
+            "categoria": "General", 
+            "url_stream": "https://vmf.edge-apps.net/embed/live.php?streamname=c7live01-20034&autoplay=true", 
+            "tipo": "iframe_directo"
+        },
+        {
+            "nombre": "Todo Noticias (TN)", 
+            "categoria": "Noticias", 
+            "url_stream": "https://api.vodgc.net/player/v2/embed/playerId/HKA9Y71614802794/contentId/1363280", 
+            "tipo": "iframe_directo"
+        },
+        {
+            "nombre": "C5N (En vivo)", 
+            "categoria": "Noticias", 
+            "url_stream": "https://www.youtube.com/watch?v=j6oh4Kqz3UM", 
+            "tipo": "youtube"
+        },
+        {
+            "nombre": "A24", 
+            "categoria": "Noticias", 
+            "url_stream": "https://www.youtube.com/watch?v=O1R1L-xKkXo", 
+            "tipo": "youtube"
+        },
+        {
+            "nombre": "La Nación +", 
+            "categoria": "Noticias", 
+            "url_stream": "https://www.youtube.com/watch?v=eYkP3N19K9s", 
+            "tipo": "youtube"
+        },
+        {
+            "nombre": "Crónica TV", 
+            "categoria": "Noticias", 
+            "url_stream": "https://www.youtube.com/watch?v=rR3k8XmK8s0", 
+            "tipo": "youtube"
+        }
     ]
     
     try:
@@ -38,7 +84,7 @@ df = cargar_datos()
 st.title("📺 Argentina TV Digital")
 
 if not df.empty:
-    busqueda = st.text_input("🔍 Buscar canal...", placeholder="Ej: C5N, TN, América...")
+    busqueda = st.text_input("🔍 Buscar canal...", placeholder="Ej: TV Pública, América, Telefe, TN...")
 
     df_filtrado = df.copy()
     if busqueda:
@@ -56,8 +102,22 @@ if not df.empty:
             url_stream, tipo = opciones[canal_seleccionado]
             st.subheader(f"🔴 En vivo: {canal_seleccionado}")
             
-            # Repro de YouTube con el formato exacto de iframe con referrerpolicy
-            if "youtube.com" in url_stream or "youtu.be" in url_stream:
+            # Reproductor iframe directo (América TV, Telefe, TV Pública, TN)
+            if tipo == "iframe_directo":
+                iframe_html = f"""
+                <iframe width="100%" height="450" 
+                src="{url_stream}" 
+                title="{canal_seleccionado}" 
+                frameborder="0" 
+                allow="autoplay; fullscreen; encrypted-media; picture-in-picture" 
+                allowfullscreen 
+                style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+                </iframe>
+                """
+                components.html(iframe_html, height=460)
+
+            # Reproductor de YouTube (El Nueve, C5N, A24, LN+, etc.)
+            elif tipo == "youtube" or "youtube.com" in url_stream or "youtu.be" in url_stream:
                 video_id = ""
                 if "v=" in url_stream:
                     video_id = url_stream.split("v=")[1].split("&")[0]
@@ -78,10 +138,9 @@ if not df.empty:
                 </iframe>
                 """
                 components.html(iframe_html, height=460)
-                
                 st.link_button("🔴 Abrir directo en YouTube", f"https://www.youtube.com/watch?v={video_id}", use_container_width=True)
             
-            # Repro HLS (.m3u8)
+            # Reproductor HLS (.m3u8)
             else:
                 player_html = f"""
                 <!DOCTYPE html>
