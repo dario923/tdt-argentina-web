@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import streamlit.components.v1 as components
-import re
 
 st.set_page_config(page_title="TDT Argentina Live", layout="wide", page_icon="📺")
 
@@ -18,7 +17,6 @@ def cargar_datos():
         {"nombre": "El Nueve", "categoria": "General", "url_stream": "https://www.youtube.com/watch?v=tR3k8XmK8s0", "tipo": "youtube"}
     ]
     
-    # Integrar señales del archivo tv.m3u local si está disponible
     try:
         with open("tv.m3u", "r", encoding="utf-8", errors="ignore") as f:
             nombre = "Canal M3U"
@@ -58,26 +56,12 @@ if not df.empty:
             url_stream, tipo = opciones[canal_seleccionado]
             st.subheader(f"🔴 En vivo: {canal_seleccionado}")
             
-            # Canales vía YouTube
+            # Reproducción limpia nativa para YouTube
             if "youtube.com" in url_stream or "youtu.be" in url_stream:
-                video_id = ""
-                if "v=" in url_stream:
-                    video_id = url_stream.split("v=")[1].split("&")[0]
-                elif "youtu.be/" in url_stream:
-                    video_id = url_stream.split("youtu.be/")[1].split("?")[0]
-                
-                # Intentar reproductor embebido
-                yt_html = f"""
-                <iframe width="100%" height="400" src="https://www.youtube.com/embed/{video_id}?autoplay=1" 
-                frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                allowfullscreen style="border-radius: 12px;"></iframe>
-                """
-                components.html(yt_html, height=410)
-                
-                # Botón de contingencia para transmisiones con restricción EMB
-                st.link_button("🌐 Abrir transmisión original en YouTube", f"https://www.youtube.com/watch?v={video_id}")
+                st.video(url_stream)
+                st.link_button("🌐 Abrir señal en pestaña nueva", url_stream)
             
-            # Canales con señal HLS (.m3u8) directa
+            # Reproducción HLS.js para streams M3U8
             else:
                 player_html = f"""
                 <!DOCTYPE html>
@@ -106,4 +90,4 @@ if not df.empty:
                 </html>
                 """
                 components.html(player_html, height=420)
-                st.caption(f"**URL de la señal:** `{url_stream}`")
+                st.caption(f"**URL Directa:** `{url_stream}`")
